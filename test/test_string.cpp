@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <UnitTest++/UnitTest++.h>
-#include "string.h"
+#include "rttl/string.h"
 
 
 TEST(constructor_1) { /// Default constructor
