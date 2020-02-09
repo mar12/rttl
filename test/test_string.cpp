@@ -247,11 +247,11 @@ TEST(at) {
 	rttl::string<32> s("Hello, World!");
 	CHECK_EQUAL(s.at(0), 'H');
 	CHECK_EQUAL(s.at(12), '!');
-	CHECK_EQUAL(s.at(13), '\0');
-	const auto& s1 = s;
+    CHECK_THROW(s.at(13), std::out_of_range);
+    const auto& s1 = s;
 	CHECK_EQUAL(s1.at(0), 'H');
 	CHECK_EQUAL(s1.at(12), '!');
-	CHECK_EQUAL(s1.at(13), '\0');
+    CHECK_THROW(s.at(13), std::out_of_range);
 }
 
 TEST(operator_at) {
@@ -447,7 +447,7 @@ TEST(insert_8) {
 	CHECK_EQUAL(std::strcmp(s.c_str(), "Hello, World.com!"), 0);
     CHECK_EQUAL(s.length(), 17u);
 	c.resize(16, '!');
-	CHECK_THROW(s.insert(s.cend(), c.cbegin(), c.cend()), std::length_error);	
+	CHECK_THROW(s.insert(s.cend(), c.cbegin(), c.cend()), std::length_error);
 }
 
 TEST(insert_9) {
@@ -850,7 +850,7 @@ TEST(copy) {
 	s.copy(buf, 5, 7);
 	CHECK_EQUAL(std::strncmp(buf, "World?", 6), 0);
 	s.copy(buf, s.npos, 0);
-	CHECK_EQUAL(std::strcmp(buf, "Hello, World!"), 0);
+	CHECK_EQUAL(std::strncmp(buf, "Hello, World!", s.length()), 0);
 	CHECK_THROW(s.copy(buf, 5, 14), std::out_of_range);
 }
 

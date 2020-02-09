@@ -1,5 +1,5 @@
 /**
- * @file string.h
+ * @file rttl/string.h
  *
  * A class template for storing a string of characters without the use of dynamic memory allocation.
  *
@@ -17,8 +17,6 @@
  *    invalidates iterators
  *
  * Important note: Be careful with allocating lengthy strings on the stack.
- *
- * (c) Mariian Berezovskyi, 2020
  *
  */
 #ifndef RTTL_STRING_H_
@@ -83,7 +81,7 @@ public:
 	 * @name (constructor)
 	 */
 	 ///{
-	basic_string() noexcept {}
+    basic_string() noexcept = default;
 
 	basic_string(size_type count, CharT ch) {
 		assign(count, ch);
@@ -107,7 +105,10 @@ public:
 
 	template <typename InputIt>
 	basic_string(InputIt first, InputIt last) {
-        assign(first, last);
+        while (first != last) {
+            push_back(*first);
+            ++first;
+        }
 	}
 
 	basic_string(const basic_string& other) noexcept {
@@ -132,7 +133,7 @@ public:
 	 * @name (destructor)
 	 */
 	 ///{
-	~basic_string() {}
+    ~basic_string() = default;
 	///}
 
 
@@ -215,11 +216,11 @@ public:
 	template <class InputIt>
 	typename std::enable_if<std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value, basic_string&>::type
 	assign(InputIt first, InputIt last) {
-		return replace(cbegin(), cend(), first, last);
+        return replace(cbegin(), cend(), first, last);
 	}
 
 	basic_string& assign(std::initializer_list<CharT> ilist) {
-		return assign(ilist.begin(), ilist.end());
+        return assign(ilist.begin(), ilist.size());
 	}
 	///}
 
@@ -232,11 +233,17 @@ public:
 	 */
 	 ///{
 	reference at(size_type pos) {
-		return m_data.at(pos);
+        if (pos >= length()) {
+            throw std::out_of_range("rttl::basic_string");
+        }
+        return m_data[pos];
 	}
 
 	const_reference at(size_type pos) const {
-		return m_data.at(pos);
+        if (pos >= length()) {
+            throw std::out_of_range("rttl::basic_string");
+        }
+        return m_data[pos];
 	}
 	///}
 
@@ -460,8 +467,9 @@ public:
 	}
 
 	iterator insert(const_iterator p, std::initializer_list<CharT> ilist) {
-		return insert(p, ilist.begin(), ilist.end());
-	}
+        insert(p - cbegin(), ilist.begin(), ilist.size());
+        return begin() + (p - cbegin());
+    }
 	///}
 
 	/**
@@ -530,7 +538,7 @@ public:
 	}
 
 	basic_string& append(std::initializer_list<CharT> ilist) {
-		return append(ilist.begin(), ilist.end());
+        return append(ilist.begin(), ilist.size());
 	}
 	///}
 
@@ -656,13 +664,15 @@ public:
 	template<class InputIt>
 	typename std::enable_if<std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value, basic_string&>::type
 	replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
-		size_type count2;
-		iterator first_nc = begin() + (first - cbegin());
+        return replace(first, last, basic_string(first2, last2));
+
+        size_type count2;
+        iterator first_nc = begin() + (first - cbegin());
 		if constexpr(std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value) {
 			/// `InputIt` is at least a forward iterator - we can do multiple passes
 			count2 = std::distance(first2, last2);
-			size_type count = std::distance(first, last);
-			if (count != count2) {
+            size_type count = std::distance(first, last);
+            if (count != count2) {
 				if (length() - count + count2 > max_size()) {
 					throw std::length_error("rttl::basic_string");
 				}
@@ -672,16 +682,17 @@ public:
 			}
 			std::copy(first2, last2, first_nc);
 		} else {
-			/// `InputIt` is just an input iterator - only one pass is allowed, we need extra memory
-			count2 = 0;
-			std::array<CharT,MaxLength> tmp;
-			while (first2 != last2) {
+            /// `InputIt` is just an input iterator - only one pass is allowed, we need extra memory
+            count2 = 0;
+            /// @todo Avoid on-stack memory allocation, if possible
+            std::array<CharT,MaxLength> tmp;
+            while (first2 != last2) {
                 if (count2 >= MaxLength) {
-					throw std::length_error("rttl::basic_string");
-				}
+                    throw std::length_error("rttl::basic_string");
+                }
                 tmp[count2] = *first2;
                 ++count2;
-			}
+            }
 			size_type count = std::distance(first, last);
 			if (count != count2) {
 				if (length() - count + count2 > max_size()) {
@@ -734,7 +745,7 @@ public:
 	}
 
 	basic_string& replace(const_iterator first, const_iterator last, std::initializer_list<CharT> ilist) {
-		return replace(first, last, ilist.begin(), ilist.end());
+        return replace(first, last, ilist.begin(), ilist.size());
 	}
 	///}
 
